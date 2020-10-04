@@ -17,7 +17,7 @@
 
 #define STACK_SIZE SIGSTKSZ
 
-uint numOfThreads = 1;
+mypthread_t numOfThreads = 1;
 
 void new_node(){
   tcb new_thread;
@@ -26,15 +26,35 @@ void new_node(){
 }
 
 void enqueue ( tcb * new_thread){
+	printf("Adding thread %d to list: \n", new_thread->thread_id);
   if(head == NULL){
     new_node();
     head = temp;
+	tail = temp;
+	head->next = head;
+	head->prev = head;
   }else{
     new_node();
     prev->next = temp;
-    prev = temp;
+	temp->prev = tail;
+    tail = temp;
+	temp->next = head;
+	head->prev = tail;
    }
   temp->n = new_thread;
+
+  printf("the head: %d \n", head->n->thread_id);
+
+	//Print the current list
+	printf("Printing current thread list: \n");
+  struct node* ptr = head;
+  do
+  {
+	  printf("thread %d \n", ptr->n->thread_id);
+		ptr = ptr->next;
+  } while (ptr != head);
+  
+ 
 }
 
 /* create a new thread */
@@ -46,27 +66,36 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
        // after everything is all set, push this thread int
        // YOUR CODE HERE
 
-       
+       printf("In mypthread_create: \n");
        // Allocate for tcb
+	   printf("Allocating for tcb: \n");
        tcb* new_thread = (tcb*) malloc(sizeof(tcb*));
-        thread = numOfThreads++;
+	   printf("tcb allocation complete \n");
+        *thread = numOfThreads++;
         new_thread->thread_id = *thread;
 
 		// Allocate for context
+		printf("Allocating for context: \n");
         ucontext_t* ctx = (ucontext_t*) malloc(sizeof(ucontext_t));
         new_thread->thread_ctx = ctx;
-        getcontext(ctx);
-		// Allocate the stack
-        (new_thread)->thread_ctx->uc_stack.ss_sp = (char*) malloc(sizeof(char) * STACK_SIZE);
-	(new_thread)->thread_ctx->uc_stack.ss_size = STACK_SIZE;
+		printf("context allocation complete \n");
+		if(getcontext(ctx) == -1){
+            printf("Error getting contxt\n");
+        }
 
-	(new_thread)->thread_status = READY;
+		// Allocate the stack
+		printf("Allocating for stack: \n");
+        (new_thread)->thread_ctx->uc_stack.ss_sp = (char*) malloc(sizeof(char) * STACK_SIZE);
+		(new_thread)->thread_ctx->uc_stack.ss_size = STACK_SIZE;
+		printf("stack allocation complete \n");
+
+		(new_thread)->thread_status = READY;
 		// TODO: Add Prioirity
 		
-	 makecontext(new_thread->thread_ctx,(void (*)()) function, 1, arg);
+	 	makecontext(new_thread->thread_ctx,(void (*)()) function, 1, arg);
 
 		// Add to list..?
-	 enqueue(new_thread);
+	 	enqueue(new_thread);
 
     return 0;
 };
