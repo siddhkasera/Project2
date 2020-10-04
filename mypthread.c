@@ -19,6 +19,23 @@
 
 uint numOfThreads = 1;
 
+void new_node(){
+  tcb new_thread;
+  temp = (struct node*) malloc (1 * sizeof(struct node));
+  temp->next = null;
+}
+
+void enqueue ( tcb * new_thread){
+  if(head == NULL){
+    new_node();
+    head = temp;
+  }else{
+    new_node();
+    prev->next = temp;
+    prev = temp;
+   }
+  temp->n = new_thread;
+}
 
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
@@ -41,15 +58,15 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
         getcontext(ctx);
 		// Allocate the stack
         (new_thread)->thread_ctx->uc_stack.ss_sp = (char*) malloc(sizeof(char) * STACK_SIZE);
-		(new_thread)->thread_ctx->uc_stack.ss_size = STACK_SIZE;
+	(new_thread)->thread_ctx->uc_stack.ss_size = STACK_SIZE;
 
-		(new_thread)->thread_status = READY;
+	(new_thread)->thread_status = READY;
 		// TODO: Add Prioirity
 		
-		makecontext(new_thread->thread_ctx,(void (*)()) function, 1, arg);
+	 makecontext(new_thread->thread_ctx,(void (*)()) function, 1, arg);
 
 		// Add to list..?
-
+	 enqueue(new_thread);
 
     return 0;
 };
