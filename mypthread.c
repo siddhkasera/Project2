@@ -22,7 +22,7 @@ uint numOfThreads = 1;
 void new_node(){
   tcb new_thread;
   temp = (struct node*) malloc (1 * sizeof(struct node));
-  temp->next = null;
+  temp->next = NULL;
 }
 
 void enqueue ( tcb * new_thread){
