@@ -18,6 +18,7 @@
 #define STACK_SIZE SIGSTKSZ
 
 mypthread_t numOfThreads = 1;
+int curr_id = 1;
 
 void new_node(){
   tcb new_thread;
@@ -100,10 +101,66 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     return 0;
 };
 
+tcb * searchBlock(int threadId){
+  printf("Searching for block 1\n");
+  temp = head;
+  while(temp !=NULL){
+    if(temp->n->thread_id == threadId){
+      printf("Found the thread: %d\n", temp->n->thread_id);
+      return temp->n;
+    }else{
+      temp = temp->next;
+    }
+  }
+  printf("Thread not found\n");
+  exit(0);
+}
+
+tcb * searchNextBlock(int threadId){
+  printf("Searching for the next block\n");
+  temp = head;
+  while(temp !=NULL){
+    if(temp->n->thread_id == threadId){
+      printf("Found a thread that is not what you were looking for: %d\n", temp->n->thread_id);
+      break;
+    }else{
+      temp = temp->next;
+    }
+  }
+    if(temp != NULL){
+      while(temp->next !=NULL){
+	if(temp->n->thread_status == 0){ //checking the status
+	  printf("Found the next thread: %d\n", temp->n->thread_id);
+	  return temp->n;
+	}else{
+	  temp = temp ->next;
+	}
+      }
+    
+    }
+    printf("No ready threads\n");
+    exit(0);
+
+}
+
+
 /* give CPU possession to other user-level threads voluntarily */
+
 int mypthread_yield() {
 
-	// change thread state from Running to Ready
+  printf("Start of the yield method\n");
+  tcb * newBlock = searchBlock(curr_id);
+  printf("New block found\n");
+  newBlock->thread_status = READY;
+  
+  int newBlockContext = getcontext(newBlock->thread_ctx);
+  printf("the new context is : %d\n", newBlockContext);
+
+  tcb * next_block = searchNextBlock(newBlock->thread_id);
+  printf("the new next block id is:%d\n", newBlock->thread_id);
+  swapcontext(newBlock->thread_ctx, next_block->thread_ctx);
+  printf("Context successfully swapped\n");
+  // change thread state from Running to Ready
 	// save context of this thread to its thread control block
 	// wwitch from thread context to scheduler context
 

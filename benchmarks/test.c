@@ -25,6 +25,7 @@ int main(int argc, char **argv) {
 	pthread_create(&thread_id, NULL, testThread, NULL);
 	pthread_join(thread_id, NULL);
 	printf("after thread \n");
+	mypthread_yield();
 
-	return 0;
+ 	return 0;
 }
