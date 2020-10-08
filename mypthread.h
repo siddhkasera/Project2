@@ -59,7 +59,10 @@ struct node {
     tcb *n;
     struct node *next;
     struct node *prev;
-}*head, *tail, *temp, *prev;
+}*head, *tail,  *prev;
+struct node* temp;
+
+
 
 
 /* Function Declarations: */

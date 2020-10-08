@@ -11,21 +11,58 @@
  * This will not be graded.
  */
 
-void * testThread(void* arg){
-	sleep(1);
-	printf("This is from thread! \n");
+void * testThreadOne(void* arg){
+	printf("HELLO FROM THREAD 1\n");
+
+	//THIS IS TO TEST YIELD
+	/* int i = 0;
+	while(i < 100000){
+		printf("This is from thread one! BRUHHH \n");
+		i++;
+	}	
+	mypthread_yield(NULL); */
+	//////////////////////////
+
+	//THIS IS TO TEST SCHEDULE SWAP
+	while(1){
+		//printf("HELLO FROM THREAD 1\n");
+	}
 	return NULL;
 }
+
+void * testThreadTwo(void* arg){
+	int i = 0;
+	printf("HELLO FROM THREAD 2\n");
+	while(1){
+		//printf("This is from thread two! \n");
+		//i++;
+	}
+		
+	//mypthread_yield(NULL);
+	return NULL;
+}
+
 int main(int argc, char **argv) {
 
 	/* Implement HERE */
 
-	pthread_t thread_id;
+	pthread_t thread_one;
+	pthread_t thread_two;
 	printf("Before thread \n");
-	pthread_create(&thread_id, NULL, testThread, NULL);
-	pthread_join(thread_id, NULL);
+	pthread_create(&thread_one, NULL, testThreadOne, NULL);
+	// while(1){
+	// 	printf("HELLO FROM MAIN\n");
+	// }
+	pthread_create(&thread_two, NULL, testThreadTwo, NULL);
+	//pthread_join(thread_one, NULL);
+	while(1){
+		//printf("THIS IS STILL MAIN\n");
+	}
 	printf("after thread \n");
-	mypthread_yield();
+
+	sleep(10);
+	//pthread_join(thread_two, NULL);
+	// mypthread_yield();
 
  	return 0;
 }
