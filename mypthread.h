@@ -12,6 +12,7 @@
 #define READY 0
 #define SCHEDULED 1
 #define BLOCKED 2
+#define DEAD 3
 
 /* To use Linux pthread Library in Benchmark, you have to comment the USE_MYTHREAD macro */
 #define USE_MYTHREAD 1

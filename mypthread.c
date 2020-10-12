@@ -298,19 +298,18 @@ void dequeue(int threadID){
 	if(temp->next =){
 	}*/
 
-    tcb *search(int threadID){
+    struct node *search(int threadID){
       printf("ENTERING SEARCH FUNCTION\n");
       temp = head;
 
       while(temp != NULL){ 
-	if(temp->n->thread_id == threadID){
-	  printf("EXITING SEARCH\n");
-	  return temp->n;
-	   printf("search thread is is:%d\n", temp->n->thread_id);
-	}else{
-	  temp = temp->next;
+	      if(temp->n->thread_id == threadID){
+	        printf("EXITING SEARCH\n");
+	        return temp;
+	      }else{
+	        temp = temp->next;
 
-	}
+	      }
       }
       printf("EXITING SEARCH FUNCTION\n");
       return NULL;
@@ -322,24 +321,53 @@ void dequeue(int threadID){
     /* terminate a thread */
     void mypthread_exit(void *value_ptr) {
 
+      //Find next ready block
+      
+
       // Deallocated any dynamic memory created when starting this thread
       printf("ENTERING THE EXIT FUNCTION\n");
-      int thread1_id = curr_running_node->n->join_thread; 
-      printf("JOINID on thread that was called join on: %d\n", thread1_id);
-      tcb * thread1;
-      thread1 = search(thread1_id); //THIS IS THE THREAD THAT CALLED JOIN ON CURRENT RUNNING THREAD
-      tcb * deletethread;
-      tcb * next_running_thread;
-      if(thread1_id != -1){ //THIS IS THE THREAD THAT WAS CALLED JOINED ON
-       thread1->return_ptr =(void**)&value_ptr;
-       thread1->thread_status = READY;
+      int callingThreadId = curr_running_node->n->join_thread; 
+      printf("JOINID of thread that called join: %d\n", callingThreadId);
+      if(callingThreadId == -1){
+        curr_running_node->n->thread_status = DEAD;
+        if(value_ptr != NULL){
+          curr_running_node->n->return_ptr = value_ptr;
+        }
+      }
+      else{
+        struct node * callingThread;
+        callingThread = search(callingThreadId); //THIS IS THE THREAD THAT CALLED JOIN ON CURRENT RUNNING THREAD
+        if(value_ptr != NULL){
+          curr_running_node->n->return_ptr = (void**)&value_ptr;
+          //curr_running_node->n->return_ptr = value_ptr;
+        }
+        callingThread->n->thread_status = READY;
+      
+        printf("Calling thread's status updated to: %d\n", callingThread->n->thread_status);
+        // CLEAN UP CURR
+        // free(curr_running_node->n->thread_ctx);
+        // free(curr_running_node->n->thread_stack);
+        //free(curr_running_node->n->thread_id);
+        //free(curr_running_node->n->return_ptr);
+        // free(curr_running_node->n);
+        // free(curr_running_node);
 
       }
-      deletethread = curr_running_node;
-      //next_running_thread = searchNextBlock();
-      curr_running_node = thread1;
-      raise(SIGPROF);
-      free(deletethread);
+      
+     
+      struct node * next_block = searchNextBlock();
+      
+      if(next_block == NULL){
+        return;
+      }
+      printf("Next thread is: %d\n", next_block->n->thread_id);
+      next_block->n->thread_status = SCHEDULED;
+
+      //LOWER PRIORITY FOR NEXT THREAD
+      next_block->n->thread_priority++;
+      curr_running_node = next_block;
+
+      setcontext(curr_running_node->n->thread_ctx);
  
   printf("LEAVING EXIT FUNCTION\n");
 	// YOUR CODE HERE
@@ -350,20 +378,32 @@ void dequeue(int threadID){
 int mypthread_join(mypthread_t thread, void **value_ptr) {
   printf("Entering the join function\n");
   
-  tcb * target;
+  struct node * target;
   printf("check1\n");
   target = search(thread);
-  printf("Thread on which join was called id: %d\n", target->thread_id);
+  printf("Thread on which join was called id: %d\n", target->n->thread_id);
 
-  if(target == NULL){ //TARGET THREAD IS NOT IN THE LIST
+  if(target == NULL){ //TARGET THREAD IS NOT IN THE LIST(should not happen)
     return 1;
-  }else{
+  }
+  else if(target->n->thread_status == DEAD){ //THREAD ALREADY RAN AND EXITED
+    value_ptr = target->n->return_ptr;
+    //FREE TARGET
+    return 0;
+
+  }
+  else{
     curr_running_node->n->thread_status = BLOCKED;
-    target->join_thread = curr_running_node->n->thread_id; //THIS THREAD WAS CALLED JOINED ON AND NEED A REFRENCE IN EXIT.
-    printf("Target joinid updated: %d\n", target->join_thread);
-    target->return_ptr = value_ptr;
+    target->n->join_thread = curr_running_node->n->thread_id; //THIS THREAD WAS CALLED JOINED ON AND NEED A REFRENCE IN EXIT.
+    printf("Target joinid updated: %d\n", target->n->join_thread);
+    target->n->return_ptr = value_ptr;
     raise(SIGPROF);
   }
+
+  //free(target->n->thread_ctx);
+  free(target->n->thread_stack);
+  free(target->n);
+  free(target);
   printf("Exiting the Join\n");
 
   return 0;
