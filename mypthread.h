@@ -40,7 +40,8 @@ typedef struct threadControlBlock {
     ucontext_t* thread_ctx;
     char* thread_stack; // NEED TO CHECK THIS
     int thread_priority;
-
+  int join_thread;
+  void ** return_ptr;
 } tcb;
 
 /* mutex struct definition */

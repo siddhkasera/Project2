@@ -140,7 +140,9 @@ void ring(int signum, siginfo_t *nfo, void *context){
   printf("Next thread is: %d\n", next_block->n->thread_id);
 
   //UPDATE THREAD STATUS
+  if(curr_running_node->n->thread_status !=  BLOCKED){
   curr_running_node->n->thread_status = READY;
+  }
   next_block->n->thread_status = SCHEDULED;
 
   //LOWER PRIORITY FOR NEXT THREAD
@@ -188,6 +190,9 @@ tcb* init_tcb(mypthread_t* thread_id){
 
     new_thread->thread_status = READY;
     new_thread->thread_priority = 0;
+    new_thread->join_thread = -1;
+    void **return_ptr  = (void**)malloc(sizeof(void));
+    new_thread->return_ptr = NULL;
 
     return new_thread;
 }
@@ -270,23 +275,98 @@ int mypthread_yield() {
 	// YOUR CODE HERE
 	return 0;
 };
+/*
+void dequeue(int threadID){
+  printf("Entering dequeue\n");
+  //CHECK IF THE NODE IS THE ONLY NODE
+  temp = head;
+  if(temp->next == head{
+      head = NULL;
+      return;
+    }
+    //CHECK IF IT IS THEFIRST NODE
+    struct node *ptr1;
+    if(temp == head){
+      ptr1 = head;
+      while(ptr1->next != head)
+	ptr1 = ptr1->next;
+	head  = temp->next;
+	tail->next = head;
+	head->prev = tail;
+      
+      //CHECK IF IT IS THE LAST NODE
+	if(temp->next =){
+	}*/
 
-/* terminate a thread */
-void mypthread_exit(void *value_ptr) {
-	// Deallocated any dynamic memory created when starting this thread
+    tcb *search(int threadID){
+      printf("ENTERING SEARCH FUNCTION\n");
+      temp = head;
 
+      while(temp != NULL){ 
+	if(temp->n->thread_id == threadID){
+	  printf("EXITING SEARCH\n");
+	  return temp->n;
+	   printf("search thread is is:%d\n", temp->n->thread_id);
+	}else{
+	  temp = temp->next;
+
+	}
+      }
+      printf("EXITING SEARCH FUNCTION\n");
+      return NULL;
+    }
+
+
+
+
+    /* terminate a thread */
+    void mypthread_exit(void *value_ptr) {
+
+      // Deallocated any dynamic memory created when starting this thread
+      printf("ENTERING THE EXIT FUNCTION\n");
+      int thread1_id = curr_running_node->n->join_thread; 
+      printf("JOINID on thread that was called join on: %d\n", thread1_id);
+      tcb * thread1;
+      thread1 = search(thread1_id); //THIS IS THE THREAD THAT CALLED JOIN ON CURRENT RUNNING THREAD
+      tcb * deletethread;
+      tcb * next_running_thread;
+      if(thread1_id != -1){ //THIS IS THE THREAD THAT WAS CALLED JOINED ON
+       thread1->return_ptr =(void**)&value_ptr;
+       thread1->thread_status = READY;
+
+      }
+      deletethread = curr_running_node;
+      //next_running_thread = searchNextBlock();
+      curr_running_node = thread1;
+      raise(SIGPROF);
+      free(deletethread);
+ 
+  printf("LEAVING EXIT FUNCTION\n");
 	// YOUR CODE HERE
 };
 
-
+ 
 /* Wait for thread termination */
 int mypthread_join(mypthread_t thread, void **value_ptr) {
+  printf("Entering the join function\n");
+  
+  tcb * target;
+  printf("check1\n");
+  target = search(thread);
+  printf("Thread on which join was called id: %d\n", target->thread_id);
 
-	// wait for a specific thread to terminate
-	// de-allocate any dynamic memory created by the joining thread
+  if(target == NULL){ //TARGET THREAD IS NOT IN THE LIST
+    return 1;
+  }else{
+    curr_running_node->n->thread_status = BLOCKED;
+    target->join_thread = curr_running_node->n->thread_id; //THIS THREAD WAS CALLED JOINED ON AND NEED A REFRENCE IN EXIT.
+    printf("Target joinid updated: %d\n", target->join_thread);
+    target->return_ptr = value_ptr;
+    raise(SIGPROF);
+  }
+  printf("Exiting the Join\n");
 
-	// YOUR CODE HERE
-	return 0;
+  return 0;
 };
 
 /* initialize the mutex lock */
