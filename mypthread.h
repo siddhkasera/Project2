@@ -48,6 +48,10 @@ typedef struct threadControlBlock {
 /* mutex struct definition */
 typedef struct mypthread_mutex_t {
 	/* add something here */
+    int init;
+    struct node* currMutThread;
+    int locked; //HAVE TO CHECK
+    struct node* waitHead;
 
 	// YOUR CODE HERE
 } mypthread_mutex_t;
@@ -61,7 +65,7 @@ struct node {
     tcb *n;
     struct node *next;
     struct node *prev;
-}*head, *tail,  *prev;
+}*head, *tail,  *prev, *blockListHead;
 struct node* temp;
 
 
