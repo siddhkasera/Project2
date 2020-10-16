@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include <unistd.h>
+#include <subatomic.h>
 
 
 #define STACK_SIZE SIGSTKSZ
@@ -468,8 +469,9 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex) {
           return 0;
         }
 
-        if(mutex->locked == 1){
-          printf("mutex already locked, adding to wait\n");
+        //if(mutex->locked == 1){
+	while(__atomic_test_and_set(&mutex->locked, 0)){
+	printf("mutex already locked, adding to wait\n");
           curr_running_node->n->thread_status = BLOCKED; 
           struct node* threadToWait = (struct node*) malloc(sizeof(struct node));
           threadToWait->n = curr_running_node->n;
