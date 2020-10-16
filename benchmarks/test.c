@@ -41,12 +41,12 @@ void * testThreadOne(void* arg){
 	  ret1 = 100;
 	  *ptr = 100;
 
-	  //pthread_mutex_lock(&lock);
+	  pthread_mutex_lock(&lock);
 	  counter++;
 	  //pthread_mutex_unlock(&lock);
 
 	  while(i < 1000000){
-		i++;
+	    //i++;
 	  }
 	  
 
@@ -60,7 +60,7 @@ void * testThreadTwo(void* arg){
 	int i = 0;
 	printf("HELLO FROM THREAD 2\n");
 
-	//pthread_mutex_lock(&lock);
+	pthread_mutex_lock(&lock);
 	counter++;
 	//pthread_mutex_unlock(&lock);
 	while(i < 100000){
@@ -92,7 +92,8 @@ int main(int argc, char **argv) {
 	pthread_create(&thread_one, NULL, &testThreadOne, NULL);
 	
 	pthread_create(&thread_two, NULL, testThreadTwo, NULL);
-	//pthread_join(thread_one, NULL);
+	pthread_join(thread_one, NULL);
+	pthread_join(thread_two,NULL);
         int i =1;
 	
 	printf("THIS IS STILL MAIN\n");

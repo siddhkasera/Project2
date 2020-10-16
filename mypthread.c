@@ -5,7 +5,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include <unistd.h>
-#include <subatomic.h>
+#include <stdatomic.h>
 
 
 #define STACK_SIZE SIGSTKSZ
@@ -486,7 +486,7 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex) {
         }
 
         mutex->currMutThread = curr_running_node;
-        mutex->locked = 1; //TODO: TEST & SET??
+        //mutex->locked = 1; //TODO: TEST & SET??
         printf("MUTEX LOCKED BY THREAD %d\n", curr_running_node->n->thread_id);
 
         return 1;
@@ -515,7 +515,7 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex) {
     ptr->n->thread_status = READY;
     ptr = ptr->next;
   }
-
+  printf("MUTEX UNLOCKED BY THREAD %d\n", curr_running_node->n->thread_id);
   //FREE LIST
   ptr = mutex->waitHead;
   while (ptr != NULL)
