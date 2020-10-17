@@ -64,14 +64,14 @@ struct node* enqueue ( tcb * new_thread){
 
 struct node* searchNextBlock(){
   printf("Looking for next ready thread\n");
-  printf("Curr num of threads: %d\n", numOfThreads);
+  //printf("Curr num of threads: %d\n", numOfThreads);
 
   struct node* ptr = head;
   do
   {
 	  //printf("thread %d \n", ptr->n->thread_id);
     if(ptr->n->thread_status == READY){
-      printf("Found the next thread: %d\n", ptr->n->thread_id); 
+      //printf("Found the next thread: %d\n", ptr->n->thread_id); 
       return ptr;
     }
 		ptr = ptr->next;
@@ -81,11 +81,11 @@ struct node* searchNextBlock(){
 
 struct node* requeue(struct node* curr_node){
   // REQUEUE THE CURR BLOCK BASED ON PRIORITY BEFORE SWAPPING
-  printf("Thread at head: %d\n", head->n->thread_id);
-  printf("Priority at head: %d\n", head->n->thread_priority);
-  printf("Priority of current thread: %d\n", curr_node->n->thread_priority);
-  printf("Thread at tail: %d\n", tail->n->thread_id);
-  printf("Priority at tail: %d\n", tail->n->thread_priority);
+  // printf("Thread at head: %d\n", head->n->thread_id);
+  // printf("Priority at head: %d\n", head->n->thread_priority);
+  // printf("Priority of current thread: %d\n", curr_node->n->thread_priority);
+  // printf("Thread at tail: %d\n", tail->n->thread_id);
+  // printf("Priority at tail: %d\n", tail->n->thread_priority);
   printQueue();
 
   struct node* ptr = head;
@@ -104,7 +104,6 @@ struct node* requeue(struct node* curr_node){
   } while (ptr != head);
 
   // all threads same priority, insert at end, ptr is at head
-  printf("came here\n");
   if(curr_node == head){
     head = curr_node->next;
     tail = curr_node;
@@ -129,6 +128,7 @@ struct node* requeue(struct node* curr_node){
 
 void ring(int signum, siginfo_t *nfo, void *context){
   timer.it_value.tv_sec = 0;
+  timer.it_value.tv_usec = 0;
   setitimer(ITIMER_PROF, &timer, NULL);
 	printf("RING RING! The timer has gone off\n");
   printf("The current running node: %d\n", curr_running_node->n->thread_id);
@@ -145,7 +145,14 @@ void ring(int signum, siginfo_t *nfo, void *context){
   struct node* next_block = searchNextBlock();
   if(next_block == NULL){
     printf("no next ready\n");
-    return; //TODO: RETURN OR EXIT
+    // NO OTHER READY BLOCK
+    if(curr_running_node->n->thread_status != BLOCKED){
+      next_block = curr_running_node;
+    }else{
+      //DEADLOCK
+      return; //TODO: RETURN OR EXIT
+    }
+    
   }
   printf("Next thread is: %d\n", next_block->n->thread_id);
 
@@ -163,8 +170,8 @@ void ring(int signum, siginfo_t *nfo, void *context){
   curr_running_node = next_block;
 
   // RESET TIMER
-  timer.it_value.tv_sec = 2;
-  timer.it_value.tv_usec = 0;
+  timer.it_value.tv_sec = 0;
+  timer.it_value.tv_usec = 10;
   setitimer(ITIMER_PROF, &timer, NULL);
   printf("Reseted timer before swap\n");
   
@@ -183,7 +190,7 @@ tcb* init_tcb(mypthread_t* thread_id){
     tcb* new_thread = (tcb*) malloc(sizeof(tcb));
 
     //tcb* new_thread = (tcb*) malloc(sizeof(tcb*));
-	  printf("TCB ALLOCATED \n");
+	  //printf("TCB ALLOCATED \n");
     *thread_id = numOfThreads++;
     new_thread->thread_id = *thread_id;
 
@@ -194,8 +201,8 @@ tcb* init_tcb(mypthread_t* thread_id){
     new_thread->thread_ctx->uc_stack.ss_sp = (char*) malloc(sizeof(char) * STACK_SIZE);
     new_thread->thread_ctx->uc_stack.ss_size = STACK_SIZE;
     new_thread->thread_ctx->uc_link = NULL;
-    printf("STACK ALLOCATED \n");
-		printf("CONTEXT ALLOCATED \n");
+    //printf("STACK ALLOCATED \n");
+		//printf("CONTEXT ALLOCATED \n");
     if(getcontext(new_thread->thread_ctx) == -1){
       printf("Error getting contxt\n");
     }
@@ -213,7 +220,7 @@ int init_timer(int sec, int ms){
   memset (&sa, 0, sizeof (sa));
 	sa.sa_handler = &ring;
 	sigaction (SIGPROF, &sa, NULL);
-  printf("SIGNAL HANDLER INITIALIZED\n");
+  //printf("SIGNAL HANDLER INITIALIZED\n");
 
   timer.it_interval.tv_usec = ms; 
 	timer.it_interval.tv_sec = sec;
@@ -222,7 +229,7 @@ int init_timer(int sec, int ms){
 	timer.it_value.tv_sec = sec;
   
   //setitimer(ITIMER_PROF, &timer, NULL);
-  printf("TIMER INITIALIZED\n");
+  //printf("TIMER INITIALIZED\n");
   return 1;
 }
 
@@ -240,11 +247,11 @@ tcb* init_main_thread(){
 /* create a new thread */
 int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
                       void *(*function)(void*), void * arg) {
-    printf("IN MYPTHREAD_CREATE:\n");
+    //printf("IN MYPTHREAD_CREATE:\n");
 
     if(timer_init == 0){
       //INITIALIZE TIMER
-      init_timer(2,0); //2 secs and 0 ms
+      init_timer(0,10); //0 secs and 10 ms
       timer_init = 1;
     }
 
@@ -253,20 +260,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
       //FIRST CALL, INITIALIZE MAIN CONTEXT
       printf("FIRST CALL, INITIALIZE MAIN CONTEXT\n");
       main_tcb = init_main_thread();
-
-
-      //INITIALIZE ACTUAL THREAD BEING CREATED
-      // tcb* thread_tcb = init_tcb(thread);
-      // makecontext(thread_tcb->thread_ctx,(void (*)()) function, 1, arg);
-      // enqueue(thread_tcb);
-
-      //free((ucontext_t*)thread_tcb->thread_ctx);
-      //GET MAIN CONTEXT AND RETURN
-      // main_init = 1;
-      // // SET TIMER
-      // setitimer(ITIMER_PROF, &timer, NULL); 
-      // getcontext(main_tcb->thread_ctx);
-      // return 1;   
+  
     }
 
     // ALLOCATE AND INIT TCB FOR THREAD
@@ -297,31 +291,25 @@ int mypthread_yield() {
 };
 
 void dequeue(int threadID){
-  printQueue();
+  //printQueue();
 
   struct node* ptr = head;
   do
   {
     if(ptr->n->thread_id == threadID){
-      printf("Found thread to deq\n");
       ptr->prev->next = ptr->next;
       ptr->next->prev = ptr->prev;
 
       if(ptr == head){
-        printf("Ptr was the head\n");
         head = ptr->next;
       }
       if(ptr == tail){
-        printf("Ptr was the tail\n");
         tail = ptr->prev;
       }
       printQueue();
 
-      printf("Ptr i want to free: %d\n", ptr->n->thread_id);
       free(ptr->n->thread_ctx->uc_stack.ss_sp);
-      printf("freed stack\n");
       free(ptr->n->thread_ctx);
-      printf("freed ctx\n");
       free(ptr->n->return_ptr);
       free(ptr->n);
       free(ptr);
@@ -337,19 +325,17 @@ void dequeue(int threadID){
 	}
 
     struct node *search(int threadID){
-      printf("ENTERING SEARCH FUNCTION\n");
+      //printf("ENTERING SEARCH FUNCTION\n");
       temp = head;
 
       while(temp != NULL){ 
 	      if(temp->n->thread_id == threadID){
-	        printf("EXITING SEARCH\n");
 	        return temp;
 	      }else{
 	        temp = temp->next;
 
 	      }
       }
-      printf("EXITING SEARCH FUNCTION\n");
       return NULL;
     }
 
@@ -361,7 +347,7 @@ void dequeue(int threadID){
 
       printf("ENTERING THE EXIT FUNCTION\n");
       int callingThreadId = curr_running_node->n->join_thread; 
-      printf("JOINID of thread that called join: %d\n", callingThreadId);
+      //printf("JOINID of thread that called join: %d\n", callingThreadId);
       if(callingThreadId == -1){
         curr_running_node->n->thread_status = DEAD;
         if(value_ptr != NULL){
@@ -372,14 +358,14 @@ void dequeue(int threadID){
         struct node * callingThread;
         callingThread = search(callingThreadId); //THIS IS THE THREAD THAT CALLED JOIN ON CURRENT RUNNING THREAD
         if(value_ptr != NULL){
-          printf("in exit valueptr is: %d\n", *(int*)value_ptr);
+          //printf("in exit valueptr is: %d\n", *(int*)value_ptr);
           *(curr_running_node->n->return_ptr) = value_ptr;
-          printf("in exit curr threads retptr is: %d\n", *(int*)(*(curr_running_node->n->return_ptr)));
+          //printf("in exit curr threads retptr is: %d\n", *(int*)(*(curr_running_node->n->return_ptr)));
         }
         callingThread->n->thread_status = READY;
       
-        printf("Calling thread's status updated to: %d\n", callingThread->n->thread_status);
-        printQueue();
+        //printf("Calling thread's status updated to: %d\n", callingThread->n->thread_status);
+        //printQueue();
       }
       
       //Find next ready block
@@ -397,7 +383,7 @@ void dequeue(int threadID){
 
       setcontext(curr_running_node->n->thread_ctx);
  
-  printf("LEAVING EXIT FUNCTION\n");
+  //printf("LEAVING EXIT FUNCTION\n");
 	// YOUR CODE HERE
 };
 
@@ -408,7 +394,7 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
   
   struct node * target;
   target = search(thread);
-  printf("Thread on which join was called id: %d\n", target->n->thread_id);
+  //printf("Thread on which join was called id: %d\n", target->n->thread_id);
 
   if(target == NULL){ //TARGET THREAD IS NOT IN THE LIST(should not happen)
     return 1;
@@ -427,10 +413,10 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
     raise(SIGPROF);
   }
   
-  printf("from join, value_ptr holds: %d\n", *(value_ptr));
+  //printf("from join, value_ptr holds: %d\n", *(value_ptr));
 
   dequeue(thread);
-  printf("Exiting the Join\n");
+  //printf("Exiting the Join\n");
   return 0;
 };
 

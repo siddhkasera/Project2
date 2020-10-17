@@ -41,7 +41,7 @@ void * testThreadOne(void* arg){
 	  ret1 = 100;
 	  *ptr = 100;
 
-	  pthread_mutex_lock(&lock);
+	  //pthread_mutex_lock(&lock);
 	  counter++;
 	  //pthread_mutex_unlock(&lock);
 
@@ -60,9 +60,11 @@ void * testThreadTwo(void* arg){
 	int i = 0;
 	printf("HELLO FROM THREAD 2\n");
 
-	pthread_mutex_lock(&lock);
+	//pthread_mutex_lock(&lock);
 	counter++;
 	//pthread_mutex_unlock(&lock);
+
+	
 	while(i < 100000){
 		//printf("This is from thread two! \n");
 		//i++;
@@ -92,8 +94,8 @@ int main(int argc, char **argv) {
 	pthread_create(&thread_one, NULL, &testThreadOne, NULL);
 	
 	pthread_create(&thread_two, NULL, testThreadTwo, NULL);
-	pthread_join(thread_one, NULL);
-	pthread_join(thread_two,NULL);
+	//pthread_join(thread_one, NULL);
+	//pthread_join(thread_two,NULL);
         int i =1;
 	
 	printf("THIS IS STILL MAIN\n");
@@ -101,8 +103,8 @@ int main(int argc, char **argv) {
 	void *retValue; 
 
 
-	// mypthread_join(thread_one, (void**)ptr);
-	// printf("Return value from thread1 is %d\n", (*ptr)); 
+	mypthread_join(thread_one, (void**)ptr);
+	printf("Return value from thread1 is %d\n", (*ptr)); 
 	mypthread_join(thread_two, NULL);
 
 	printf("From main, lock status: %d\n", lock.locked);
