@@ -46,6 +46,8 @@ struct node* enqueue ( tcb * new_thread){
     head->next = head;
     head->prev = head;
   }else{
+    printf("head is %d\n", head->n->thread_id);
+    printf("tail is %d\n", tail->n->thread_id);
     new_node();
     tail->next = temp;
 	  temp->prev = tail;
@@ -81,14 +83,15 @@ struct node* searchNextBlock(){
 
 struct node* requeue(struct node* curr_node){
   // REQUEUE THE CURR BLOCK BASED ON PRIORITY BEFORE SWAPPING
-  // printf("Thread at head: %d\n", head->n->thread_id);
-  // printf("Priority at head: %d\n", head->n->thread_priority);
-  // printf("Priority of current thread: %d\n", curr_node->n->thread_priority);
-  // printf("Thread at tail: %d\n", tail->n->thread_id);
-  // printf("Priority at tail: %d\n", tail->n->thread_priority);
+  printf("Thread at head: %d\n", head->n->thread_id);
+  printf("Priority at head: %d\n", head->n->thread_priority);
+  printf("Priority of current thread: %d\n", curr_node->n->thread_priority);
+  printf("Thread at tail: %d\n", tail->n->thread_id);
+  printf("Priority at tail: %d\n", tail->n->thread_priority);
   printQueue();
 
   struct node* ptr = head;
+  printf("ptr at req: %d\n", ptr->n->thread_id);
   do
   {
     if(ptr->n->thread_priority > curr_node->n->thread_priority){
@@ -104,6 +107,7 @@ struct node* requeue(struct node* curr_node){
   } while (ptr != head);
 
   // all threads same priority, insert at end, ptr is at head
+  printf("here\n");
   if(curr_node == head){
     head = curr_node->next;
     tail = curr_node;
@@ -111,15 +115,31 @@ struct node* requeue(struct node* curr_node){
     tail->next = head;
   }else{
     
-    if(ptr->next == curr_node){
-      ptr->next = curr_node->next;
-    }
-    curr_node->prev = ptr->prev;
-    ptr->prev->next = curr_node;
-    curr_node->next = ptr;
-    
-    ptr->prev = curr_node;
+    //deque from list
+    curr_node->prev->next = curr_node->next;
+    curr_node->next->prev = curr_node->prev;
+
+      if(curr_node == head){
+        head = curr_node->next;
+      }
+      if(curr_node == tail){
+        tail = curr_node->prev;
+      }
+    //insert at end
+    tail->next = curr_node;
+    curr_node->next = head;
+    curr_node->prev = tail;
+    head->prev = curr_node;
     tail = curr_node;
+    // if(ptr->next == curr_node){
+    //   ptr->next = curr_node->next;
+    // }
+    // curr_node->prev = ptr->prev;
+    // ptr->prev->next = curr_node;
+    // curr_node->next = ptr;
+    
+    // ptr->prev = curr_node;
+    // tail = curr_node;
   }
   printQueue();
 
@@ -306,7 +326,7 @@ void dequeue(int threadID){
       if(ptr == tail){
         tail = ptr->prev;
       }
-      printQueue();
+      //printQueue();
 
       free(ptr->n->thread_ctx->uc_stack.ss_sp);
       free(ptr->n->thread_ctx);

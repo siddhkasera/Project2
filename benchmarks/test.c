@@ -63,7 +63,6 @@ void * testThreadTwo(void* arg){
 	//pthread_mutex_lock(&lock);
 	counter++;
 	//pthread_mutex_unlock(&lock);
-
 	
 	while(i < 100000){
 		//printf("This is from thread two! \n");
