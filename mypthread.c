@@ -190,7 +190,7 @@ void ring(int signum, siginfo_t *nfo, void *context){
   curr_running_node = next_block;
 
   // RESET TIMER
-  timer.it_value.tv_sec = 0;
+  timer.it_value.tv_sec = 1;
   timer.it_value.tv_usec = 10;
   setitimer(ITIMER_PROF, &timer, NULL);
   printf("Reseted timer before swap\n");
@@ -271,7 +271,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
 
     if(timer_init == 0){
       //INITIALIZE TIMER
-      init_timer(0,10); //0 secs and 10 ms
+      init_timer(1,10); //0 secs and 10 ms
       timer_init = 1;
     }
 
@@ -346,16 +346,26 @@ void dequeue(int threadID){
 
     struct node *search(int threadID){
       //printf("ENTERING SEARCH FUNCTION\n");
-      temp = head;
+      struct node* ptr = head;
+      do
+        {
+          if(ptr->n->thread_id == threadID){
+            return ptr;
+          }else{
+            ptr = ptr->next;
+          }
+        } while (ptr != head);
 
-      while(temp != NULL){ 
-	      if(temp->n->thread_id == threadID){
-	        return temp;
-	      }else{
-	        temp = temp->next;
+      // temp = head;
 
-	      }
-      }
+      // while(temp != NULL){ 
+	    //   if(temp->n->thread_id == threadID){
+	    //     return temp;
+	    //   }else{
+	    //     temp = temp->next;
+
+	    //   }
+      // }
       return NULL;
     }
 
