@@ -27,6 +27,17 @@
 
 typedef uint mypthread_t;
 
+/* mutex struct definition */
+typedef struct mypthread_mutex_t {
+	/* add something here */
+    int init;
+    struct node* currMutThread;
+    int locked; //HAVE TO CHECK
+    struct node* waitHead;
+
+	// YOUR CODE HERE
+} mypthread_mutex_t;
+
 typedef struct threadControlBlock {
 	/* add important states in a thread control block */
 	// thread Id
@@ -43,18 +54,10 @@ typedef struct threadControlBlock {
     int thread_priority;
   int join_thread;
   void ** return_ptr;
+  mypthread_mutex_t* mutexThatBlocked;
 } tcb;
 
-/* mutex struct definition */
-typedef struct mypthread_mutex_t {
-	/* add something here */
-    int init;
-    struct node* currMutThread;
-    int locked; //HAVE TO CHECK
-    struct node* waitHead;
 
-	// YOUR CODE HERE
-} mypthread_mutex_t;
 
 /* define your data structures here: */
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)

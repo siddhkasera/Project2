@@ -41,9 +41,11 @@ void * testThreadOne(void* arg){
 	  ret1 = 100;
 	  *ptr = 100;
 
-	  //pthread_mutex_lock(&lock);
-	  counter++;
-	  //pthread_mutex_unlock(&lock);
+	  while(1){
+		pthread_mutex_lock(&lock);
+		counter++;
+		pthread_mutex_unlock(&lock);
+	}
 
 	  while(i < 1000000){
 	    //i++;
@@ -60,9 +62,11 @@ void * testThreadTwo(void* arg){
 	int i = 0;
 	printf("HELLO FROM THREAD 2\n");
 
-	//pthread_mutex_lock(&lock);
-	counter++;
-	//pthread_mutex_unlock(&lock);
+	while(1){
+		pthread_mutex_lock(&lock);
+		counter++;
+		pthread_mutex_unlock(&lock);
+	}
 	
 	while(i < 100000){
 		//printf("This is from thread two! \n");

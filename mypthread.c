@@ -190,7 +190,7 @@ void ring(int signum, siginfo_t *nfo, void *context){
   curr_running_node = next_block;
 
   // RESET TIMER
-  timer.it_value.tv_sec = 1;
+  timer.it_value.tv_sec = 0;
   timer.it_value.tv_usec = 10;
   setitimer(ITIMER_PROF, &timer, NULL);
   printf("Reseted timer before swap\n");
@@ -271,7 +271,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
 
     if(timer_init == 0){
       //INITIALIZE TIMER
-      init_timer(1,10); //0 secs and 10 ms
+      init_timer(0,10); //0 secs and 10 ms
       timer_init = 1;
     }
 
@@ -485,11 +485,11 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex) {
           return 0;
         }
 
-        //if(mutex->locked == 1){
 	while(__atomic_test_and_set(&mutex->locked, 0)){
 	printf("mutex already locked, adding to wait\n");
           curr_running_node->n->thread_status = BLOCKED; 
-          struct node* threadToWait = (struct node*) malloc(sizeof(struct node));
+          curr_running_node->n->mutexThatBlocked = mutex;
+          /* struct node* threadToWait = (struct node*) malloc(sizeof(struct node));
           threadToWait->n = curr_running_node->n;
           struct node* ptr = mutex->waitHead;
           if(ptr != NULL){
@@ -497,14 +497,13 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex) {
             mutex->waitHead = threadToWait;
           }else{
             mutex->waitHead = threadToWait;
-          }
+          } */
           raise(SIGPROF);
         }
 
         mutex->currMutThread = curr_running_node;
         //mutex->locked = 1; //TODO: TEST & SET??
         printf("MUTEX LOCKED BY THREAD %d\n", curr_running_node->n->thread_id);
-
         return 1;
 };
 
@@ -515,6 +514,7 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex) {
 	// so that they could compete for mutex later.
 
 	// YOUR CODE HERE
+  printf("IN MUTEX UNLOCK\n");
   if(mutex->init != 1){
     printf("Mutex not initialized!\n");
     return 0;
@@ -525,21 +525,41 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex) {
     return 0;
   }
 
-  //READYS THE WAITLIST
+  printf("BEFORE I READY\n");
+  struct node* ptr = head;
+  do
+  {
+    if(ptr->n->thread_status == BLOCKED && ptr->n->mutexThatBlocked == mutex){
+      ptr->n->thread_status = READY;
+      ptr->n->mutexThatBlocked = NULL;
+    }else{
+      ptr = ptr->next;
+    }
+  } while (ptr != head);
+
+
+  /* //READYS THE WAITLIST
   struct node* ptr = mutex->waitHead;
+  if(ptr != NULL){
+    printf("Thread at waitlist head: %d\n", ptr->n->thread_id);
+  }
+  
   while(ptr != NULL){
     ptr->n->thread_status = READY;
     ptr = ptr->next;
-  }
+  } */
   printf("MUTEX UNLOCKED BY THREAD %d\n", curr_running_node->n->thread_id);
   //FREE LIST
-  ptr = mutex->waitHead;
+  /* ptr = mutex->waitHead;
   while (ptr != NULL)
   {
     struct node* curr = ptr;
     ptr = ptr->next;
+    //curr = NULL;
+    curr->n = NULL;
     free(curr);
   }
+  mutex->waitHead = NULL; */
   
 
   mutex->currMutThread = NULL;
