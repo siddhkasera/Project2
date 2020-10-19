@@ -11,6 +11,7 @@
 #define STACK_SIZE SIGSTKSZ
 
 mypthread_t numOfThreads = 0;
+int mutexCount = 0;
 int curr_id = 1;
 struct itimerval timer;
 struct sigaction sa;
@@ -38,7 +39,8 @@ void printQueue(){
 }
 
 struct node* enqueue ( tcb * new_thread){
-	printf("Adding thread %d to list: \n", new_thread->thread_id);
+  signal(SIGPROF, SIG_IGN);
+	//printf("Adding thread %d to list: \n", new_thread->thread_id);
   if(head == NULL){
     new_node();
     head = temp;
@@ -46,8 +48,6 @@ struct node* enqueue ( tcb * new_thread){
     head->next = head;
     head->prev = head;
   }else{
-    printf("head is %d\n", head->n->thread_id);
-    printf("tail is %d\n", tail->n->thread_id);
     new_node();
     tail->next = temp;
 	  temp->prev = tail;
@@ -56,22 +56,19 @@ struct node* enqueue ( tcb * new_thread){
     head = temp;
   }
   temp->n = new_thread;
+  sigaction (SIGPROF, &sa, NULL);
 
-  //printf("the head: %d \n", head->n->thread_id);
-  printQueue();
+  //printQueue();
 
   return temp;
 }
 
 
 struct node* searchNextBlock(){
-  printf("Looking for next ready thread\n");
-  //printf("Curr num of threads: %d\n", numOfThreads);
-
+  //printf("Looking for next ready thread\n");
   struct node* ptr = head;
   do
   {
-	  //printf("thread %d \n", ptr->n->thread_id);
     if(ptr->n->thread_status == READY){
       //printf("Found the next thread: %d\n", ptr->n->thread_id); 
       return ptr;
@@ -83,15 +80,9 @@ struct node* searchNextBlock(){
 
 struct node* requeue(struct node* curr_node){
   // REQUEUE THE CURR BLOCK BASED ON PRIORITY BEFORE SWAPPING
-  printf("Thread at head: %d\n", head->n->thread_id);
-  printf("Priority at head: %d\n", head->n->thread_priority);
-  printf("Priority of current thread: %d\n", curr_node->n->thread_priority);
-  printf("Thread at tail: %d\n", tail->n->thread_id);
-  printf("Priority at tail: %d\n", tail->n->thread_priority);
-  printQueue();
+  // printQueue();
 
   struct node* ptr = head;
-  printf("ptr at req: %d\n", ptr->n->thread_id);
   do
   {
     if(ptr->n->thread_priority > curr_node->n->thread_priority){
@@ -106,15 +97,13 @@ struct node* requeue(struct node* curr_node){
     }
   } while (ptr != head);
 
-  // all threads same priority, insert at end, ptr is at head
-  printf("here\n");
+  //thread goes at end of list, ptr is at head
   if(curr_node == head){
     head = curr_node->next;
     tail = curr_node;
     head->prev = tail;
     tail->next = head;
-  }else{
-    
+  }else{  
     //deque from list
     curr_node->prev->next = curr_node->next;
     curr_node->next->prev = curr_node->prev;
@@ -131,17 +120,8 @@ struct node* requeue(struct node* curr_node){
     curr_node->prev = tail;
     head->prev = curr_node;
     tail = curr_node;
-    // if(ptr->next == curr_node){
-    //   ptr->next = curr_node->next;
-    // }
-    // curr_node->prev = ptr->prev;
-    // ptr->prev->next = curr_node;
-    // curr_node->next = ptr;
-    
-    // ptr->prev = curr_node;
-    // tail = curr_node;
   }
-  printQueue();
+  //printQueue();
 
   return head;
 }
@@ -150,8 +130,8 @@ void ring(int signum, siginfo_t *nfo, void *context){
   timer.it_value.tv_sec = 0;
   timer.it_value.tv_usec = 0;
   setitimer(ITIMER_PROF, &timer, NULL);
-	printf("RING RING! The timer has gone off\n");
-  printf("The current running node: %d\n", curr_running_node->n->thread_id);
+	// printf("RING RING! The timer has gone off\n");
+  // printf("The current running node: %d\n", curr_running_node->n->thread_id);
   
 
   //LETS BACKUP CONTEXT OF RUNNING THREAD
@@ -164,7 +144,6 @@ void ring(int signum, siginfo_t *nfo, void *context){
 
   struct node* next_block = searchNextBlock();
   if(next_block == NULL){
-    printf("no next ready\n");
     // NO OTHER READY BLOCK
     if(curr_running_node->n->thread_status != BLOCKED){
       next_block = curr_running_node;
@@ -174,7 +153,7 @@ void ring(int signum, siginfo_t *nfo, void *context){
     }
     
   }
-  printf("Next thread is: %d\n", next_block->n->thread_id);
+  //printf("Next thread is: %d\n", next_block->n->thread_id);
 
   //UPDATE THREAD STATUS
   if(curr_running_node->n->thread_status !=  BLOCKED){
@@ -189,28 +168,24 @@ void ring(int signum, siginfo_t *nfo, void *context){
   struct node* prev_node = curr_running_node;
   curr_running_node = next_block;
 
-  // RESET TIMER
+  //RESET TIMER
   timer.it_value.tv_sec = 0;
   timer.it_value.tv_usec = 10;
   setitimer(ITIMER_PROF, &timer, NULL);
-  printf("Reseted timer before swap\n");
   
   // swapping prev and new current
   swapcontext(prev_node->n->thread_ctx, curr_running_node->n->thread_ctx);
 
 
-  //sleep(10);
 	return;
-	//setitimer(ITIMER_PROF, &timer, NULL);
 }
 
 tcb* init_tcb(mypthread_t* thread_id){
-    printf("INITIALIZING TCB\n");
+    //printf("INITIALIZING TCB\n");
     // Allocate for tcb
     tcb* new_thread = (tcb*) malloc(sizeof(tcb));
-
-    //tcb* new_thread = (tcb*) malloc(sizeof(tcb*));
 	  //printf("TCB ALLOCATED \n");
+
     *thread_id = numOfThreads++;
     new_thread->thread_id = *thread_id;
 
@@ -231,6 +206,7 @@ tcb* init_tcb(mypthread_t* thread_id){
     new_thread->thread_priority = 0;
     new_thread->join_thread = -1;
     new_thread->return_ptr = (void**)malloc(sizeof(void**));
+    new_thread->mutexThatBlocked = -1;
 
     return new_thread;
 }
@@ -238,7 +214,7 @@ tcb* init_tcb(mypthread_t* thread_id){
 int init_timer(int sec, int ms){
   // REGISTERING SIGNAL HANDLER
   memset (&sa, 0, sizeof (sa));
-	sa.sa_handler = &ring;
+	sa.sa_handler = (void*)&ring;
 	sigaction (SIGPROF, &sa, NULL);
   //printf("SIGNAL HANDLER INITIALIZED\n");
 
@@ -248,7 +224,6 @@ int init_timer(int sec, int ms){
   timer.it_value.tv_usec = ms;
 	timer.it_value.tv_sec = sec;
   
-  //setitimer(ITIMER_PROF, &timer, NULL);
   //printf("TIMER INITIALIZED\n");
   return 1;
 }
@@ -278,7 +253,7 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
     tcb* main_tcb;
     if(main_init == 0){
       //FIRST CALL, INITIALIZE MAIN CONTEXT
-      printf("FIRST CALL, INITIALIZE MAIN CONTEXT\n");
+      //printf("FIRST CALL, INITIALIZE MAIN CONTEXT\n");
       main_tcb = init_main_thread();
   
     }
@@ -304,9 +279,8 @@ int mypthread_create(mypthread_t * thread, pthread_attr_t * attr,
 
 int mypthread_yield() {
 
-  printf("IN YIELD:\n");
+  //printf("IN YIELD:\n");
   raise(SIGPROF);
-	// YOUR CODE HERE
 	return 0;
 };
 
@@ -328,11 +302,11 @@ void dequeue(int threadID){
       }
       //printQueue();
 
-      free(ptr->n->thread_ctx->uc_stack.ss_sp);
-      free(ptr->n->thread_ctx);
-      free(ptr->n->return_ptr);
-      free(ptr->n);
-      free(ptr);
+       free(ptr->n->thread_ctx->uc_stack.ss_sp);
+       free(ptr->n->thread_ctx);
+       free(ptr->n->return_ptr);
+       free(ptr->n);
+       free(ptr);
       return;
 
     }else{
@@ -375,7 +349,7 @@ void dequeue(int threadID){
     /* terminate a thread */
     void mypthread_exit(void *value_ptr) {
 
-      printf("ENTERING THE EXIT FUNCTION\n");
+      //printf("ENTERING THE EXIT FUNCTION\n");
       int callingThreadId = curr_running_node->n->join_thread; 
       //printf("JOINID of thread that called join: %d\n", callingThreadId);
       if(callingThreadId == -1){
@@ -404,7 +378,7 @@ void dequeue(int threadID){
       if(next_block == NULL){
         return;
       }
-      printf("Next thread is: %d\n", next_block->n->thread_id);
+      //printf("Next thread is: %d\n", next_block->n->thread_id);
       next_block->n->thread_status = SCHEDULED;
 
       //LOWER PRIORITY FOR NEXT THREAD
@@ -414,13 +388,12 @@ void dequeue(int threadID){
       setcontext(curr_running_node->n->thread_ctx);
  
   //printf("LEAVING EXIT FUNCTION\n");
-	// YOUR CODE HERE
 };
 
  
 /* Wait for thread termination */
 int mypthread_join(mypthread_t thread, void **value_ptr) {
-  printf("Entering the join function\n");
+  //printf("Entering the join function\n");
   
   struct node * target;
   target = search(thread);
@@ -438,7 +411,7 @@ int mypthread_join(mypthread_t thread, void **value_ptr) {
   else{
     curr_running_node->n->thread_status = BLOCKED;
     target->n->join_thread = curr_running_node->n->thread_id; //THIS THREAD WAS CALLED JOINED ON AND NEED A REFRENCE IN EXIT.
-    printf("Target joinid updated: %d\n", target->n->join_thread);
+    //printf("Target joinid updated: %d\n", target->n->join_thread);
     *(target->n->return_ptr) = value_ptr;
     raise(SIGPROF);
   }
@@ -455,17 +428,18 @@ int mypthread_mutex_init(mypthread_mutex_t *mutex,
                           const pthread_mutexattr_t *mutexattr) {
 	//initialize data structures for this mutex
 
-  printf("MUTEX INITIALIZED\n");
+  //printf("MUTEX INITIALIZED\n");
   if(mutex == NULL){
     printf("Mutext not malloced\n");
     return 1;
   }  
 
   //initialize
-  mutex->init = 1;
-  //mutex->waitHead = (struct node*) malloc(sizeof(node));
+  mutex->init = mutexCount++;
+  mutex->readyWaiting = 0;
   mutex->locked = 0; //NOT LOCKED
   mutex->currMutThread = NULL;
+  mutex->init = 1;
 
 	// YOUR CODE HERE
 	return 0;
@@ -478,33 +452,27 @@ int mypthread_mutex_lock(mypthread_mutex_t *mutex) {
         // if acquiring mutex fails, push current thread into block list and //
         // context switch to the scheduler thread
 
-        // YOUR CODE HERE
-        printf("STARTED LOCK\n");
-        if(mutex->init != 1){
+        //printf("STARTED LOCK\n");
+        
+        if(mutex == NULL || mutex->init != 1){
           printf("Mutex not initialized!\n");
-          return 0;
+          return 1;
         }
 
-	while(__atomic_test_and_set(&mutex->locked, 0)){
-	printf("mutex already locked, adding to wait\n");
+        while(__atomic_test_and_set(&mutex->locked, 0)){
+        //printf("mutex already locked, adding to wait\n");
+          signal(SIGPROF,SIG_IGN);
           curr_running_node->n->thread_status = BLOCKED; 
-          curr_running_node->n->mutexThatBlocked = mutex;
-          /* struct node* threadToWait = (struct node*) malloc(sizeof(struct node));
-          threadToWait->n = curr_running_node->n;
-          struct node* ptr = mutex->waitHead;
-          if(ptr != NULL){
-            threadToWait->next = ptr;
-            mutex->waitHead = threadToWait;
-          }else{
-            mutex->waitHead = threadToWait;
-          } */
+          curr_running_node->n->mutexThatBlocked = mutex->mid;
+          sigaction (SIGPROF, &sa, NULL);
+
           raise(SIGPROF);
         }
 
         mutex->currMutThread = curr_running_node;
-        //mutex->locked = 1; //TODO: TEST & SET??
-        printf("MUTEX LOCKED BY THREAD %d\n", curr_running_node->n->thread_id);
-        return 1;
+        mutex->readyWaiting = 0;
+        //printf("MUTEX LOCKED BY THREAD %d\n", curr_running_node->n->thread_id);
+        return 0;
 };
 
 /* release the mutex lock */
@@ -513,11 +481,10 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex) {
 	// Put threads in block list to run queue
 	// so that they could compete for mutex later.
 
-	// YOUR CODE HERE
-  printf("IN MUTEX UNLOCK\n");
+  //printf("IN MUTEX UNLOCK\n");
   if(mutex->init != 1){
     printf("Mutex not initialized!\n");
-    return 0;
+    return 1;
   }
 
   if(mutex->locked == 0){
@@ -525,47 +492,29 @@ int mypthread_mutex_unlock(mypthread_mutex_t *mutex) {
     return 0;
   }
 
-  printf("BEFORE I READY\n");
+  if(mutex->currMutThread != curr_running_node){
+    // some other thread attempting unlock
+    return 0;
+  }
+
+  
+  mutex->locked = 0; //TODO: TEST AND SET??
+  mutex->currMutThread = NULL;
+
+  //printf("BEFORE I READY\n");
   struct node* ptr = head;
   do
   {
-    if(ptr->n->thread_status == BLOCKED && ptr->n->mutexThatBlocked == mutex){
+    if(ptr->n->thread_status == BLOCKED && ptr->n->mutexThatBlocked == mutex->mid){
       ptr->n->thread_status = READY;
-      ptr->n->mutexThatBlocked = NULL;
+      ptr->n->mutexThatBlocked = -1;
     }else{
       ptr = ptr->next;
     }
   } while (ptr != head);
 
 
-  /* //READYS THE WAITLIST
-  struct node* ptr = mutex->waitHead;
-  if(ptr != NULL){
-    printf("Thread at waitlist head: %d\n", ptr->n->thread_id);
-  }
-  
-  while(ptr != NULL){
-    ptr->n->thread_status = READY;
-    ptr = ptr->next;
-  } */
-  printf("MUTEX UNLOCKED BY THREAD %d\n", curr_running_node->n->thread_id);
-  //FREE LIST
-  /* ptr = mutex->waitHead;
-  while (ptr != NULL)
-  {
-    struct node* curr = ptr;
-    ptr = ptr->next;
-    //curr = NULL;
-    curr->n = NULL;
-    free(curr);
-  }
-  mutex->waitHead = NULL; */
-  
-
-  mutex->currMutThread = NULL;
-  mutex->locked = 0; //TODO: TEST AND SET??
-
-	return 1;
+	return 0;
 };
 
 
@@ -589,7 +538,7 @@ static void schedule() {
 	// according to policy (STCF or MLFQ)
 
 	// if (sched == STCF)
-	//		sched_stcf();
+	// 		sched_stcf();
 	// else if (sched == MLFQ)
 	// 		sched_mlfq();
 

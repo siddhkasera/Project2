@@ -31,11 +31,11 @@ typedef uint mypthread_t;
 typedef struct mypthread_mutex_t {
 	/* add something here */
     int init;
+    int mid;
     struct node* currMutThread;
-    int locked; //HAVE TO CHECK
-    struct node* waitHead;
+    int locked; 
+    int readyWaiting;
 
-	// YOUR CODE HERE
 } mypthread_mutex_t;
 
 typedef struct threadControlBlock {
@@ -50,11 +50,10 @@ typedef struct threadControlBlock {
 	mypthread_t thread_id;
     int thread_status;
     ucontext_t* thread_ctx;
-    char* thread_stack; // NEED TO CHECK THIS
     int thread_priority;
-  int join_thread;
-  void ** return_ptr;
-  mypthread_mutex_t* mutexThatBlocked;
+    int join_thread;
+    void ** return_ptr;
+    int mutexThatBlocked;
 } tcb;
 
 

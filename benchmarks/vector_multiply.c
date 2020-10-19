@@ -4,7 +4,7 @@
 #include "../mypthread.h"
 
 #define DEFAULT_THREAD_NUM 2
-#define VECTOR_SIZE 2000000 //3000000
+#define VECTOR_SIZE 3000000
 
 /* Global variables */
 pthread_mutex_t   mutex;
