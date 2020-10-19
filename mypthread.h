@@ -12,6 +12,7 @@
 #define READY 0
 #define SCHEDULED 1
 #define BLOCKED 2
+#define DEAD 3
 
 /* To use Linux pthread Library in Benchmark, you have to comment the USE_MYTHREAD macro */
 #define USE_MYTHREAD 1
@@ -26,6 +27,17 @@
 
 typedef uint mypthread_t;
 
+/* mutex struct definition */
+typedef struct mypthread_mutex_t {
+	/* add something here */
+    int init;
+    int mid;
+    struct node* currMutThread;
+    int locked; 
+    int readyWaiting;
+
+} mypthread_mutex_t;
+
 typedef struct threadControlBlock {
 	/* add important states in a thread control block */
 	// thread Id
@@ -38,17 +50,13 @@ typedef struct threadControlBlock {
 	mypthread_t thread_id;
     int thread_status;
     ucontext_t* thread_ctx;
-    char* thread_stack; // NEED TO CHECK THIS
     int thread_priority;
-
+    int join_thread;
+    void ** return_ptr;
+    int mutexThatBlocked;
 } tcb;
 
-/* mutex struct definition */
-typedef struct mypthread_mutex_t {
-	/* add something here */
 
-	// YOUR CODE HERE
-} mypthread_mutex_t;
 
 /* define your data structures here: */
 // Feel free to add your own auxiliary data structures (linked list or queue etc...)
@@ -59,7 +67,7 @@ struct node {
     tcb *n;
     struct node *next;
     struct node *prev;
-}*head, *tail,  *prev;
+}*head, *tail,  *prev, *blockListHead;
 struct node* temp;
 
 
